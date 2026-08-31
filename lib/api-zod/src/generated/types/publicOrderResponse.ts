@@ -5,7 +5,9 @@
  * Undergraduate Hub commerce and administration API
  * OpenAPI spec version: 1.0.0
  */
+import type { PublicOrder } from './publicOrder';
 
-export interface HealthStatus {
-  status: string;
+export interface PublicOrderResponse {
+  success: true;
+  data: PublicOrder;
 }

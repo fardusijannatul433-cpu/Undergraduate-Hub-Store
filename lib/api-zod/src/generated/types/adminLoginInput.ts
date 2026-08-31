@@ -6,6 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface AdminLoginInput {
+  email: string;
+  /**
+     * @minLength 8
+     * @maxLength 200
+     */
+  password: string;
 }

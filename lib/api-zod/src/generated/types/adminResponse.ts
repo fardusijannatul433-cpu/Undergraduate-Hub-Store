@@ -5,7 +5,9 @@
  * Undergraduate Hub commerce and administration API
  * OpenAPI spec version: 1.0.0
  */
+import type { Admin } from './admin';
 
-export interface HealthStatus {
-  status: string;
+export interface AdminResponse {
+  success: true;
+  data: Admin;
 }

@@ -5,7 +5,11 @@
  * Undergraduate Hub commerce and administration API
  * OpenAPI spec version: 1.0.0
  */
+import type { SearchParameter } from './searchParameter';
 
-export interface HealthStatus {
-  status: string;
-}
+export type ListAdminCustomersParams = {
+/**
+ * @maxLength 100
+ */
+search?: SearchParameter;
+};

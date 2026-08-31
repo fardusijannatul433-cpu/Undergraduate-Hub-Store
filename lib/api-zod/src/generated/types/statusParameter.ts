@@ -5,7 +5,6 @@
  * Undergraduate Hub commerce and administration API
  * OpenAPI spec version: 1.0.0
  */
+import type { OrderStatus } from './orderStatus';
 
-export interface HealthStatus {
-  status: string;
-}
+export type StatusParameter = OrderStatus;

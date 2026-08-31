@@ -2,21 +2,28 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 1.0.0
+  description: Undergraduate Hub commerce and administration API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: products
+    description: Public product catalog
+  - name: orders
+    description: Guest checkout and public order tracking
+  - name: admin-auth
+    description: Admin session management
+  - name: admin
+    description: Protected administration operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +31,652 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List active products
+      parameters:
+        - $ref: "#/components/parameters/Category"
+        - $ref: "#/components/parameters/Featured"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Active product catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductListResponse"
+  /products/{slug}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get one active product by slug
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /orders:
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Place a guest order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderCreateResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /orders/{orderNumber}:
+    get:
+      operationId: getPublicOrder
+      tags: [orders]
+      summary: Get limited public order status
+      parameters:
+        - $ref: "#/components/parameters/OrderNumber"
+      responses:
+        "200":
+          description: Public order status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicOrderResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin-auth]
+      summary: Authenticate an admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginInput"
+      responses:
+        "200":
+          description: Authenticated admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [admin-auth]
+      summary: End the admin session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessageResponse"
+  /admin/me:
+    get:
+      operationId: getAdminMe
+      tags: [admin-auth]
+      summary: Get the current admin
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: Current admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [admin]
+      summary: Get dashboard metrics and recent orders
+      security: [{ cookieAuth: [] }]
+      responses:
+        "200":
+          description: Dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /admin/orders:
+    get:
+      operationId: listAdminOrders
+      tags: [admin]
+      summary: List orders for administration
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Status"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOrderListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /admin/orders/{id}:
+    get:
+      operationId: getAdminOrder
+      tags: [admin]
+      summary: Get an order for administration
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOrderResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateAdminOrder
+      tags: [admin]
+      summary: Update order status
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderUpdate"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOrderResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/products:
+    get:
+      operationId: listAdminProducts
+      tags: [admin]
+      summary: List all products
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Product management list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createAdminProduct
+      tags: [admin]
+      summary: Create a product
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Created product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /admin/products/{id}:
+    patch:
+      operationId: updateAdminProduct
+      tags: [admin]
+      summary: Update a product
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductUpdate"
+      responses:
+        "200":
+          description: Updated product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    delete:
+      operationId: archiveAdminProduct
+      tags: [admin]
+      summary: Archive a product
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Archived product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /admin/customers:
+    get:
+      operationId: listAdminCustomers
+      tags: [admin]
+      summary: List customers with order totals
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Customers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /admin/upload:
+    post:
+      operationId: uploadAdminImage
+      tags: [admin]
+      summary: Upload a product image
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/UploadInput"
+      responses:
+        "200":
+          description: Uploaded image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: uh_admin
+  parameters:
+    Slug:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string, minLength: 1 }
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, minLength: 1 }
+    OrderNumber:
+      name: orderNumber
+      in: path
+      required: true
+      schema: { type: string, pattern: "^UH-[0-9]+$" }
+    Category:
+      name: category
+      in: query
+      schema: { type: string }
+    Featured:
+      name: featured
+      in: query
+      schema: { type: boolean }
+    Status:
+      name: status
+      in: query
+      schema:
+        $ref: "#/components/schemas/OrderStatus"
+    Search:
+      name: search
+      in: query
+      schema: { type: string, maxLength: 100 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: number, minimum: 1, maximum: 100, default: 50 }
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
   schemas:
     HealthStatus:
       type: object
       properties:
-        status:
-          type: string
-      required:
-        - status
-
+        status: { type: string }
+      required: [status]
+    ErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: false }
+        message: { type: string }
+        code: { type: string }
+      required: [success, message]
+    SuccessMessageResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data:
+          type: object
+          properties:
+            message: { type: string }
+          required: [message]
+      required: [success, data]
+    Product:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        price: { type: number, minimum: 0 }
+        marketPrice: { type: [number, "null"], minimum: 0 }
+        stock: { type: number, minimum: 0 }
+        images:
+          type: array
+          items: { type: string }
+        category: { type: string }
+        itemsIncluded:
+          type: array
+          items: { type: string }
+        isActive: { type: boolean }
+        featured: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+      required: [id, title, slug, description, price, marketPrice, stock, images, category, itemsIncluded, isActive, featured, createdAt, updatedAt]
+    ProductListResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Product" }
+      required: [success, data]
+    ProductResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data: { $ref: "#/components/schemas/Product" }
+      required: [success, data]
+    ProductInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 2, maxLength: 160 }
+        slug: { type: string, minLength: 2, maxLength: 180, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        description: { type: string, minLength: 10, maxLength: 5000 }
+        price: { type: number, minimum: 0 }
+        marketPrice: { type: [number, "null"], minimum: 0 }
+        stock: { type: number, minimum: 0 }
+        images:
+          type: array
+          items: { type: string }
+        category: { type: string, minLength: 2, maxLength: 80 }
+        itemsIncluded:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 160 }
+        isActive: { type: boolean }
+        featured: { type: boolean }
+      required: [title, slug, description, price, stock, images, category, itemsIncluded, isActive, featured]
+    ProductUpdate:
+      allOf:
+        - $ref: "#/components/schemas/ProductInput"
+    OrderStatus:
+      type: string
+      enum: [PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED]
+    PaymentMethod:
+      type: string
+      enum: [CASH_ON_DELIVERY, BKASH_MANUAL]
+    OrderItemInput:
+      type: object
+      properties:
+        productId: { type: string, minLength: 1 }
+        quantity: { type: number, minimum: 1, maximum: 50 }
+      required: [productId, quantity]
+    OrderInput:
+      type: object
+      properties:
+        customerName: { type: string, minLength: 2, maxLength: 120 }
+        customerPhone: { type: string, minLength: 8, maxLength: 20 }
+        university: { type: [string, "null"], maxLength: 120 }
+        deliveryAddress: { type: string, minLength: 10, maxLength: 500 }
+        paymentMethod: { $ref: "#/components/schemas/PaymentMethod" }
+        trxId: { type: [string, "null"], maxLength: 120 }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { $ref: "#/components/schemas/OrderItemInput" }
+      required: [customerName, customerPhone, deliveryAddress, paymentMethod, items]
+    OrderUpdate:
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/OrderStatus" }
+      required: [status]
+    OrderItem:
+      type: object
+      properties:
+        id: { type: string }
+        productId: { type: string }
+        title: { type: string }
+        quantity: { type: number }
+        price: { type: number }
+        image: { type: [string, "null"] }
+      required: [id, productId, title, quantity, price, image]
+    OrderSummary:
+      type: object
+      properties:
+        subtotal: { type: number }
+        deliveryFee: { type: number }
+        discount: { type: number }
+        totalAmount: { type: number }
+      required: [subtotal, deliveryFee, discount, totalAmount]
+    CreatedOrder:
+      type: object
+      properties:
+        orderNumber: { type: string }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        paymentMethod: { $ref: "#/components/schemas/PaymentMethod" }
+        customerName: { type: string }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/OrderItem" }
+        summary: { $ref: "#/components/schemas/OrderSummary" }
+        createdAt: { type: string }
+      required: [orderNumber, status, paymentMethod, customerName, items, summary, createdAt]
+    OrderCreateResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data: { $ref: "#/components/schemas/CreatedOrder" }
+      required: [success, data]
+    PublicOrder:
+      type: object
+      properties:
+        orderNumber: { type: string }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        itemCount: { type: number }
+        totalAmount: { type: number }
+        createdAt: { type: string }
+      required: [orderNumber, status, itemCount, totalAmount, createdAt]
+    PublicOrderResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data: { $ref: "#/components/schemas/PublicOrder" }
+      required: [success, data]
+    Admin:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+      required: [id, email]
+    AdminLoginInput:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 200 }
+      required: [email, password]
+    AdminResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data: { $ref: "#/components/schemas/Admin" }
+      required: [success, data]
+    AdminOrder:
+      allOf:
+        - $ref: "#/components/schemas/CreatedOrder"
+        - type: object
+          properties:
+            id: { type: string }
+            customerPhone: { type: string }
+            university: { type: [string, "null"] }
+            deliveryAddress: { type: string }
+            trxId: { type: [string, "null"] }
+      required: [id, customerPhone, university, deliveryAddress, trxId]
+    AdminOrderListResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/AdminOrder" }
+      required: [success, data]
+    AdminOrderResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data: { $ref: "#/components/schemas/AdminOrder" }
+      required: [success, data]
+    Dashboard:
+      type: object
+      properties:
+        todayOrders: { type: number }
+        pendingOrders: { type: number }
+        processingOrders: { type: number }
+        deliveredOrders: { type: number }
+        todaySales: { type: number }
+        totalProducts: { type: number }
+        lowStockProducts: { type: number }
+        recentOrders:
+          type: array
+          items: { $ref: "#/components/schemas/AdminOrder" }
+      required: [todayOrders, pendingOrders, processingOrders, deliveredOrders, todaySales, totalProducts, lowStockProducts, recentOrders]
+    DashboardResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data: { $ref: "#/components/schemas/Dashboard" }
+      required: [success, data]
+    Customer:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        phone: { type: string }
+        university: { type: [string, "null"] }
+        orderCount: { type: number }
+        totalSpending: { type: number }
+        lastOrderAt: { type: [string, "null"] }
+      required: [id, name, phone, university, orderCount, totalSpending, lastOrderAt]
+    CustomerListResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Customer" }
+      required: [success, data]
+    UploadInput:
+      type: object
+      properties:
+        file: { type: string }
+      required: [file]
+    Upload:
+      type: object
+      properties:
+        url: { type: string }
+        publicId: { type: [string, "null"] }
+      required: [url, publicId]
+    UploadResponse:
+      type: object
+      properties:
+        success: { type: boolean, const: true }
+        data: { $ref: "#/components/schemas/Upload" }
+      required: [success, data]
